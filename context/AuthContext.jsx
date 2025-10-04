@@ -1,5 +1,7 @@
+// context/AuthContext.js
 "use client";
-import React, { createContext, useState, useContext, useEffect } from 'react';
+
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
@@ -17,98 +19,106 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // ✅ Check auth on mount (only once)
   useEffect(() => {
-    checkUserLoggedIn();
-  }, []);
+    const validateToken = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-  const checkUserLoggedIn = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        const response = await fetch('/api/auth/me', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` },
+          // Important: Disable caching for auth check
+          next: { revalidate: 0 },
         });
 
-        if (response.ok) {
-          const userData = await response.json();
+        if (res.ok) {
+          const userData = await res.json();
           setUser(userData);
         } else {
+          // Token invalid/expired
           localStorage.removeItem('token');
+          setUser(null);
         }
+      } catch (error) {
+        console.error('Auth validation error:', error);
+        localStorage.removeItem('token');
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error checking auth:', error);
-      localStorage.removeItem('token');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
+    validateToken();
+  }, []);
+
+  // ✅ Login function
   const login = async (email, password) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok) {
+      if (res.ok && data.token && data.user) {
         localStorage.setItem('token', data.token);
         setUser(data.user);
-        router.push('/');
+        router.refresh(); // Refresh server components if needed
         return { success: true };
       } else {
-        return { success: false, error: data.message };
+        return { success: false, error: data.message || 'Invalid credentials' };
       }
     } catch (error) {
-      return { success: false, error: 'An error occurred during login' };
+      console.error('Login error:', error);
+      return { success: false, error: 'Network error. Please try again.' };
     }
   };
 
+  // ✅ Register function
   const register = async (name, email, password) => {
     try {
-      const response = await fetch('/api/auth/register', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok) {
+      if (res.ok && data.token && data.user) {
         localStorage.setItem('token', data.token);
         setUser(data.user);
-        router.push('/');
+        router.refresh();
         return { success: true };
       } else {
-        return { success: false, error: data.message };
+        return { success: false, error: data.message || 'Registration failed' };
       }
     } catch (error) {
-      return { success: false, error: 'An error occurred during registration' };
+      console.error('Registration error:', error);
+      return { success: false, error: 'Network error. Please try again.' };
     }
   };
 
+  // ✅ Logout function
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    router.push('/');
+    router.push('/login');
+    router.refresh();
   };
 
-  const value = {
-    user,
-    login,
-    register,
-    logout,
-    loading,
-  };
+  // ✅ Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(
+    () => ({ user, login, register, logout, loading }),
+    [user, loading]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -3,14 +3,44 @@
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { Transition } from "@headlessui/react";
+import { useRouter } from "next/navigation";
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   const handleLogout = () => {
     logout();
   };
+
+  // While auth is loading, show a minimal skeleton
+  if (authLoading) {
+    return (
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-gray-200/60 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 rounded-xl bg-gray-200 animate-pulse"></div>
+              <div className="h-6 w-28 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="h-8 w-32 bg-gray-200 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // Navigation items (conditionally include "Diagnose")
+  const navItems = [
+    { name: "Home", href: "/" },
+    { name: "About", href: "/about" },
+    { name: "Contact", href: "/contact" },
+  ];
+
+  // Only show "Diagnose" if user is logged in
+  if (user) {
+    navItems.splice(2, 0, { name: "Diagnose", href: "/diagnose" });
+  }
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-gray-200/60 shadow-sm">
@@ -28,12 +58,7 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
-            {[
-              { name: "Home", href: "/" },
-              { name: "About", href: "/about" },
-              { name: "Diagnoses", href: "/diagnose" },
-              { name: "Contact", href: "/contact" },
-            ].map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -48,7 +73,7 @@ const Header = () => {
           <div className="flex items-center space-x-3">
             {user ? (
               <div className="flex items-center space-x-3">
-                <span className="hidden sm:inline-block text-sm font-medium text-gray-700">
+                <span className="hidden sm:inline-block text-sm font-medium text-gray-700 truncate max-w-[120px]">
                   Hi, {user.name}
                 </span>
                 <button
@@ -77,9 +102,6 @@ const Header = () => {
           </div>
         </div>
       </div>
-
-      {/* Mobile Menu Placeholder (Optional Enhancement) */}
-      {/* You can add a mobile menu later using a hamburger icon */}
     </header>
   );
 };
