@@ -1,6 +1,6 @@
 // components/WhatWeDo.jsx
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import {
   UserIcon,
   MapPinIcon,
@@ -9,10 +9,24 @@ import {
   BeakerIcon,
   AcademicCapIcon,
 } from "@heroicons/react/24/outline";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
 const WhatWeDo = () => {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+
+  const handleDiagnoseClick = () => {
+    if (user) {
+      router.push("/diagnose");
+    } else {
+      setShowLoginPopup(true);
+    }
+  };
+
   const steps = [
     {
       id: 1,
@@ -114,7 +128,6 @@ const WhatWeDo = () => {
               }}
               className="group relative bg-white rounded-xl p-6 border border-gray-100 cursor-pointer transition-all duration-300"
             >
-              {/* Icon Circle */}
               <div
                 className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${step.bg} border ${step.border} group-hover:bg-blue-50 group-hover:border-blue-200 transition-colors duration-300`}
               >
@@ -128,7 +141,6 @@ const WhatWeDo = () => {
                 {step.description}
               </p>
 
-              {/* Subtle underline on hover */}
               <div className="mt-4 h-0.5 bg-transparent group-hover:bg-blue-500 transition-all duration-300 rounded-full"></div>
             </motion.div>
           ))}
@@ -141,25 +153,110 @@ const WhatWeDo = () => {
           transition={{ duration: 0.3, delay: 0.3, ease: "easeOut" }}
           className="mt-16 text-center"
         >
-          <Link href="/diagnose" passHref>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-full font-semibold shadow-sm hover:shadow-md transition-all duration-300"
-              asChild 
+          <motion.button
+            onClick={handleDiagnoseClick}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            className="inline-flex items-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-full font-semibold shadow-sm hover:shadow-md transition-all duration-300"
+          >
+            <span>Get Your Personalized Health Report in 60 Seconds</span>
+            <motion.span
+              animate={{ x: [0, 4, 0] }}
+              transition={{ duration: 0.3, repeat: Infinity }}
+              className="ml-2"
             >
-              <span>Get Your Personalized Health Report in 60 Seconds</span>
-              <motion.span
-                animate={{ x: [0, 4, 0] }}
-                transition={{ duration: 0.3, repeat: Infinity }}
-                className="ml-2"
-              >
-                →
-              </motion.span>
-            </motion.button>
-          </Link>
+              →
+            </motion.span>
+          </motion.button>
         </motion.div>
       </div>
+
+      {/* 🔥 Full-Screen Login Required Modal */}
+      <AnimatePresence>
+        {showLoginPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLoginPopup(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 py-6 px-6 text-center">
+                <h2 className="text-2xl font-bold text-white">Login Required</h2>
+              </div>
+
+              {/* Body */}
+              <div className="p-6">
+                <div className="flex justify-center mb-5">
+                  <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-8 w-8 text-blue-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <p className="text-gray-700 text-center mb-8">
+                  Please log in to access your personalized health assessment and unlock all features.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => {
+                      setShowLoginPopup(false);
+                      router.push("/login");
+                    }}
+                    className="flex-1 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                  >
+                    Go to Login
+                  </button>
+                  <button
+                    onClick={() => setShowLoginPopup(false)}
+                    className="flex-1 px-5 py-3 bg-gray-100 text-gray-800 font-semibold rounded-xl hover:bg-gray-200 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-gray-600">
+                    Don't have an account?{" "}
+                    <Link
+                      href="/register"
+                      className="text-blue-600 font-medium hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowLoginPopup(false);
+                      }}
+                    >
+                      Sign up
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };
