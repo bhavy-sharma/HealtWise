@@ -14,6 +14,8 @@ import {
   ClipboardDocumentListIcon,
   AcademicCapIcon
 } from "@heroicons/react/24/outline";
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function DiagnosePage() {
   const [formData, setFormData] = useState({
@@ -110,6 +112,8 @@ const handleSubmit = async (e) => {
 };
 
   return (
+    <div>
+      <Header />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4 sm:px-6 relative overflow-hidden">
       <div className="max-w-2xl mx-auto relative z-10">
         <div className="text-center mb-10">
@@ -337,6 +341,8 @@ const handleSubmit = async (e) => {
           <p>🔒 Your data is processed securely and never stored permanently</p>
         </div>
       </div>
+    </div>
+    <Footer />
     </div>
   );
 }
