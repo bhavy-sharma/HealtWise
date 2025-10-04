@@ -10,7 +10,7 @@ const WowHeroSection = () => {
   const [hoveredFeature, setHoveredFeature] = useState(null);
 
   const handleGetStarted = () => {
-    router.push('/Issue');
+    router.push('/diagnose');
   };
 
   // Text Animation Variants
