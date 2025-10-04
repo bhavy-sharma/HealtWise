@@ -1,35 +1,31 @@
 // components/WowHeroSection.js
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext'; // 👈 Make sure this path is correct
+import { useAuth } from '@/context/AuthContext';
+import Link from "next/link";
 
 const WowHeroSection = () => {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
-  const [showLoginTooltip, setShowLoginTooltip] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const handleGetStarted = () => {
     if (user) {
       router.push('/diagnose');
     } else {
-      // Show tooltip briefly
-      setShowLoginTooltip(true);
-      setTimeout(() => setShowLoginTooltip(false), 2000);
-      // Optionally auto-redirect to login
-      router.push('/login');
+      setShowLoginPopup(true);
+      // Auto-hide after 4 seconds
+      setTimeout(() => setShowLoginPopup(false), 4000);
     }
   };
 
-  // Text Animation Variants (unchanged)
+  // Text Animation Variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.2 }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
   };
 
   const itemVariants = {
@@ -52,7 +48,6 @@ const WowHeroSection = () => {
     visible: { width: "100%", transition: { duration: 1, delay: 1.5, ease: "easeInOut" } }
   };
 
-  // Don't render CTA until auth state is known
   if (authLoading) {
     return (
       <div className="h-screen bg-white flex items-center justify-center">
@@ -62,10 +57,10 @@ const WowHeroSection = () => {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col lg:flex-row overflow-hidden">
+    <div className="h-screen bg-white flex flex-col lg:flex-row overflow-hidden relative">
       {/* Left Side - Content */}
       <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-white relative order-2 lg:order-1">
-        {/* Subtle Background Orbs */}
+        {/* Background Orbs */}
         <div className="absolute inset-0 pointer-events-none">
           <motion.div
             animate={{ scale: [1, 1.1, 1], opacity: [0.03, 0.06, 0.03] }}
@@ -85,7 +80,6 @@ const WowHeroSection = () => {
           initial="hidden"
           animate="visible"
         >
-          {/* Animated Heading */}
           <motion.div
             variants={textContainerVariants}
             initial="hidden"
@@ -128,53 +122,31 @@ const WowHeroSection = () => {
             connect with expert doctors, and discover the best healthcare facilities near you.
           </motion.p>
 
-          {/* CTA Button with Login Check */}
+          {/* ✅ Always "Start Health Assessment" — never disabled */}
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-4 mb-8 relative"
+            className="flex flex-col sm:flex-row gap-4 mb-8"
           >
             <motion.button
               onClick={handleGetStarted}
-              whileHover={user ? { scale: 1.03 } : {}}
-              whileTap={user ? { scale: 0.98 } : {}}
-              disabled={!user}
-              className={`group relative inline-flex items-center gap-3 px-8 py-4 text-lg font-semibold rounded-2xl shadow-md justify-center transition-all duration-300 ${
-                user
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg cursor-pointer'
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-              }`}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-lg font-semibold rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 justify-center cursor-pointer"
             >
-              {user ? (
-                <>
-                  <span>Start Health Assessment</span>
-                  <motion.span
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="text-lg"
-                  >
-                    →
-                  </motion.span>
-                </>
-              ) : (
-                'Login Required'
-              )}
-            </motion.button>
-
-            {/* Tooltip (Optional) */}
-            {showLoginTooltip && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1.5 rounded-md whitespace-nowrap"
+              <span>Start Health Assessment</span>
+              <motion.span
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="text-lg"
               >
-                Please log in to continue
-              </motion.div>
-            )}
+                →
+              </motion.span>
+            </motion.button>
           </motion.div>
         </motion.div>
       </div>
 
-      {/* Right Side - Image (unchanged) */}
+      {/* Right Side - Image */}
       <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-gradient-to-br from-white via-gray-50 to-gray-100/50 relative overflow-hidden order-1 lg:order-2">
         <motion.div
           whileHover={{
@@ -208,6 +180,82 @@ const WowHeroSection = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* 🔥 POPUP: Login Required */}
+      <AnimatePresence>
+  {showLoginPopup && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={() => setShowLoginPopup(false)}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 py-6 px-6 text-center">
+          <h2 className="text-2xl font-bold text-white">Login Required</h2>
+        </div>
+
+        {/* Body */}
+        <div className="p-6">
+          <div className="flex justify-center mb-5">
+            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+          </div>
+
+          <p className="text-gray-700 text-center mb-8">
+            Please log in to access your personalized health assessment and unlock all features.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => {
+                setShowLoginPopup(false);
+                router.push('/login');
+              }}
+              className="flex-1 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+            >
+              Go to Login
+            </button>
+            <button
+              onClick={() => setShowLoginPopup(false)}
+              className="flex-1 px-5 py-3 bg-gray-100 text-gray-800 font-semibold rounded-xl hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link 
+                href="/register" 
+                className="text-blue-600 font-medium hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowLoginPopup(false);
+                }}
+              >
+                Sign up
+              </Link>
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
     </div>
   );
 };
