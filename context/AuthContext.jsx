@@ -1,4 +1,3 @@
-// context/AuthContext.js
 "use client";
 
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
@@ -32,7 +31,6 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
-          // Important: Disable caching for auth check
           next: { revalidate: 0 },
         });
 
@@ -40,7 +38,6 @@ export const AuthProvider = ({ children }) => {
           const userData = await res.json();
           setUser(userData);
         } else {
-          // Token invalid/expired
           localStorage.removeItem('token');
           setUser(null);
         }
@@ -56,7 +53,7 @@ export const AuthProvider = ({ children }) => {
     validateToken();
   }, []);
 
-  // ✅ Login function
+  // ✅ Login function (redirect → /disclaimer)
   const login = async (email, password) => {
     try {
       const res = await fetch('/api/auth/login', {
@@ -70,7 +67,8 @@ export const AuthProvider = ({ children }) => {
       if (res.ok && data.token && data.user) {
         localStorage.setItem('token', data.token);
         setUser(data.user);
-        router.refresh(); // Refresh server components if needed
+        router.push('/disclaimer'); // 👈 redirect after login
+        router.refresh();
         return { success: true };
       } else {
         return { success: false, error: data.message || 'Invalid credentials' };
@@ -81,7 +79,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ Register function
+  // ✅ Register function (redirect → /disclaimer)
   const register = async (name, email, password) => {
     try {
       const res = await fetch('/api/auth/register', {
@@ -95,6 +93,7 @@ export const AuthProvider = ({ children }) => {
       if (res.ok && data.token && data.user) {
         localStorage.setItem('token', data.token);
         setUser(data.user);
+        router.push('/disclaimer'); // 👈 redirect after registration
         router.refresh();
         return { success: true };
       } else {
@@ -114,7 +113,6 @@ export const AuthProvider = ({ children }) => {
     router.refresh();
   };
 
-  // ✅ Memoize context value to prevent unnecessary re-renders
   const value = useMemo(
     () => ({ user, login, register, logout, loading }),
     [user, loading]
