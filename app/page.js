@@ -1,7 +1,11 @@
-import Header from '@/components/Header';
+import WhatWeDo from '../components/WhatWeDo';
+import WhoWeAre from '../components/WhoWeAre';
 
-export default function Home (){
-  <body>
-    <Header />
-  </body>
+export default function HomePage() {
+  return (
+    <main>
+      <WhatWeDo />
+      <WhoWeAre />
+    </main>
+  );
 }
