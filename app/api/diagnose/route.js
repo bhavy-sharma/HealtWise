@@ -2,29 +2,32 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const MAPMYINDIA_API_KEY = process.env.MAPMYINDIA_API_KEY;
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAP_KEY;
 
 export async function POST(req) {
   try {
     const { symptoms, latitude, longitude } = await req.json();
 
+    // ✅ Validate symptoms
     if (!symptoms?.trim()) {
       return new Response(JSON.stringify({ error: "Please enter your symptoms." }), { status: 400 });
     }
 
+    // ✅ Validate live location
     if (!latitude || !longitude) {
       return new Response(JSON.stringify({ error: "Location is required." }), { status: 400 });
     }
 
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
+
     if (isNaN(lat) || isNaN(lng)) {
       return new Response(JSON.stringify({ error: "Invalid coordinates." }), { status: 400 });
     }
 
-    // === AI Diagnosis ===
+    // 🧠 Step 1: Get diagnosis + specialists from Gemini
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // ✅ Use stable model
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // ✅ Fixed model name
 
     const prompt = `
 You are an expert medical assistant. Based on these symptoms:
@@ -39,95 +42,68 @@ Provide a JSON response with this structure:
   "note": "Consult a doctor for proper diagnosis."
 }
 
-RULES:
-- Respond ONLY with valid JSON. NO MARKDOWN, NO TEXT BEFORE/AFTER.
-- Use ONLY English. No other languages.
 - Do NOT include medicine names.
 - Keep remedies and precautions practical.
+- Specialists should be relevant (e.g., "Cardiologist" for heart issues).
 - Always end note with "Consult a doctor for proper diagnosis."
+- Respond ONLY with valid JSON. No extra text.
 `;
 
     const result = await model.generateContent(prompt);
-    let rawText = result.response.text().trim();
+    let text = result.response.text().replace(/```json\n?/g, '').replace(/```/g, '').trim();
 
-    // 🔥 CRITICAL: Clean response to ensure valid JSON
-    // Remove any markdown, extra text, or non-JSON content
-    let jsonStr = rawText;
-    if (rawText.startsWith("```json")) {
-      jsonStr = rawText.split("```json")[1]?.split("```")[0]?.trim() || rawText;
-    } else if (rawText.includes("{") && rawText.includes("}")) {
-      // Extract JSON object if wrapped in text
-      const start = rawText.indexOf("{");
-      const end = rawText.lastIndexOf("}") + 1;
-      jsonStr = rawText.slice(start, end);
-    }
-
-    // Validate JSON
     let diagnosisData;
     try {
-      diagnosisData = JSON.parse(jsonStr);
-      // Ensure all required fields exist
-      if (!diagnosisData.diagnosis || !Array.isArray(diagnosisData.remedies)) {
-        throw new Error("Missing required fields");
-      }
+      diagnosisData = JSON.parse(text);
     } catch (e) {
-      console.error("AI JSON Parse Error:", { rawText, jsonStr, error: e.message });
-      return new Response(
-        JSON.stringify({ error: "AI returned invalid response. Please try again." }),
-        { status: 500 }
-      );
+      console.error("JSON Parse Error:", text);
+      return new Response(JSON.stringify({ error: "AI response format error." }), { status: 500 });
     }
 
-    // === MapmyIndia Nearby Hospitals ===
+    // 🏥 Step 2: Fetch BEST hospitals near live location using Google Places
     let hospitals = [];
     try {
-      const url = `https://apis.mapmyindia.com/advancedmaps/v1/${MAPMYINDIA_API_KEY}/nearby?` +
-        `refLocation=${lat},${lng}&category=HOS&radius=10000&sort=distance&itemCount=8`;
+      // Get top-rated hospitals within 10km radius
+      const placesResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=10000&type=hospital&key=${GOOGLE_MAPS_API_KEY}&rankby=prominence`
+      );
+      const placesData = await placesResponse.json();
 
-      const nearbyResponse = await fetch(url, { timeout: 10000 });
+      if (placesData.status === "OK") {
+        // Sort by rating (highest first) and pick top 5
+        const sortedHospitals = placesData.results
+          .filter(place => place.rating && place.user_ratings_total > 10) // Only rated hospitals
+          .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+          .slice(0, 5);
 
-      // 🔥 Check if response is OK and has valid JSON
-      if (!nearbyResponse.ok) {
-        console.warn("MapmyIndia HTTP Error:", nearbyResponse.status, await nearbyResponse.text());
-        throw new Error("HTTP error");
-      }
-
-      const contentType = nearbyResponse.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await nearbyResponse.text();
-        console.warn("MapmyIndia non-JSON response:", text);
-        throw new Error("Response is not JSON");
-      }
-
-      const nearbyData = await nearbyResponse.json();
-
-      if (nearbyData?.copiedPois?.length > 0) {
-        hospitals = nearbyData.copiedPois.map(place => ({
-          name: place.pname || "Medical Facility",
-          address: place.address || place.locality || "Address not available",
-          place_id: place.eLoc,
-          map_url: `https://www.mapmyindia.com/maps?eLoc=${place.eLoc}`
+        hospitals = sortedHospitals.map(place => ({
+          name: place.name,
+          address: place.vicinity,
+          rating: place.rating,
+          user_ratings_total: place.user_ratings_total,
+          place_id: place.place_id,
+          map_url: `https://www.google.com/maps/place/?q=place_id:${place.place_id}`
         }));
       }
     } catch (err) {
-      console.error("MapmyIndia API Error:", err.message);
-      // Don't fail the whole request — just return empty hospitals
+      console.error("Hospital API Error:", err);
+      // Don't fail the whole request
     }
 
-    return new Response(
-      JSON.stringify({
-        ...diagnosisData,
-        location: { lat, lng },
-        hospitals
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    // ✅ Final response
+    const resultData = {
+      ...diagnosisData,
+      location: { lat, lng },
+      hospitals // Top-rated hospitals near user's live location
+    };
+
+    return new Response(JSON.stringify(resultData), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
 
   } catch (error) {
-    console.error("Unexpected API Error:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to process your request." }),
-      { status: 500 }
-    );
+    console.error("API Error:", error);
+    return new Response(JSON.stringify({ error: "Failed to process your request." }), { status: 500 });
   }
 }
