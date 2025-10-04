@@ -224,11 +224,6 @@ const WowHeroSection = () => {
               <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity duration-300"></div>
             </motion.button>
           </motion.div>
-
-          {/* Features Grid */}
-          
-
-          {/* Stats */}
         </motion.div>
       </div>
 
