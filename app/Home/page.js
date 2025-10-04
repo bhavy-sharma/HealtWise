@@ -5,7 +5,7 @@ export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loginMessage, setLoginMessage] = useState(""); // ✅ Custom message
+  const [loginMessage, setLoginMessage] = useState(""); 
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
