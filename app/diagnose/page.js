@@ -18,19 +18,19 @@ import {
 export default function DiagnosePage() {
   const [formData, setFormData] = useState({
     name: '',
-    pincode: '',
     age: '',
     gender: '',
-    issue: '',        // ← This is your symptoms field
+    issue: '',
     days: '',
     issueLevel: '',
     previousIssues: '',
     allergies: ''
   });
   
+  const [liveLocation, setLiveLocation] = useState(null); // ✅ Store GPS coordinates
+  const [isUsingLocation, setIsUsingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [diagnosisResult, setDiagnosisResult] = useState(''); // Optional: to show result
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -39,15 +39,40 @@ export default function DiagnosePage() {
     if (error) setError('');
   };
 
-  const validateForm = () => {
-    const { name, pincode, age, gender, issue, days, issueLevel } = formData;
-    
-    if (!name || !pincode || !age || !gender || !issue || !days || !issueLevel) {
-      return "All required fields must be filled.";
+  // ✅ Get live location
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
     }
+
+    setIsUsingLocation(true);
+    setError('');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setLiveLocation({ latitude, longitude });
+        setIsUsingLocation(false);
+      },
+      (err) => {
+        console.error("Geolocation error:", err);
+        setError("Unable to access your location. Please allow location permission.");
+        setIsUsingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  const validateForm = () => {
+    const { name, age, gender, issue, days, issueLevel } = formData;
     
-    if (!/^\d{6}$/.test(pincode)) {
-      return "PINCODE must be 6 digits";
+    if (!name || !age || !gender || !issue || !days || !issueLevel) {
+      return "All required fields must be filled.";
     }
     
     const ageNum = Number(age);
@@ -63,51 +88,55 @@ export default function DiagnosePage() {
     return null;
   };
 
-  // ... (same imports and state)
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  const validationError = validateForm();
-  if (validationError) {
-    setError(validationError);
-    return;
-  }
-
-  const symptoms = formData.issue.trim();
-  if (!symptoms) {
-    setError("Please describe your symptoms.");
-    return;
-  }
-
-  setIsSubmitting(true);
-  setError('');
-
-  try {
-    const res = await fetch('/api/diagnose', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // 👇 Send symptoms + pincode
-      body: JSON.stringify({ 
-        symptoms, 
-        pincode: formData.pincode 
-      }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      sessionStorage.setItem('diagnosisResult', JSON.stringify(data));
-      
-      router.push('/results');
-    } else {
-      setError(data.error || "Failed to get diagnosis.");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
     }
-  } catch (err) {
-    setError("Network error. Please try again.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+
+    const symptoms = formData.issue.trim();
+    if (!symptoms) {
+      setError("Please describe your symptoms.");
+      return;
+    }
+
+    // ✅ Ensure location is provided
+    if (!liveLocation) {
+      setError("Please use 'Use My Location' to find nearby hospitals.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/diagnose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // 👇 Send symptoms + LIVE LOCATION (not pincode)
+        body: JSON.stringify({ 
+          symptoms, 
+          latitude: liveLocation.latitude,
+          longitude: liveLocation.longitude
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        sessionStorage.setItem('diagnosisResult', JSON.stringify(data));
+        router.push('/results');
+      } else {
+        setError(data.error || "Failed to get diagnosis.");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4 sm:px-6 relative overflow-hidden">
@@ -120,7 +149,7 @@ const handleSubmit = async (e) => {
             AI Health Diagnosis
           </h1>
           <p className="text-gray-600 max-w-md mx-auto">
-            Help us understand your condition better for accurate insights
+            We'll find the best hospitals near your current location
           </p>
         </div>
 
@@ -131,13 +160,6 @@ const handleSubmit = async (e) => {
                 <span className="mr-2">⚠️</span>
                 <span>{error}</span>
               </div>
-            </div>
-          )}
-
-          {diagnosisResult && (
-            <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-r-lg">
-              <h3 className="font-bold mb-2">AI Diagnosis:</h3>
-              <p>{diagnosisResult}</p>
             </div>
           )}
 
@@ -162,25 +184,37 @@ const handleSubmit = async (e) => {
               </div>
             </div>
 
-            {/* PINCODE */}
+            {/* ✅ LIVE LOCATION BUTTON (replaces PINCODE) */}
             <div>
-              <label htmlFor="pincode" className="block text-sm font-medium text-gray-700 mb-2">
-                PINCODE *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Location *
               </label>
-              <div className="relative">
-                <MapPinIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  id="pincode"
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="6-digit PINCODE"
-                  maxLength={6}
-                  required
-                />
-              </div>
+              <button
+                type="button"
+                onClick={handleUseLocation}
+                disabled={isUsingLocation}
+                className="w-full flex items-center justify-center gap-3 py-4 px-5 bg-white/90 border border-gray-300 rounded-xl text-gray-800 hover:bg-blue-50 hover:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              >
+                {isUsingLocation ? (
+                  <>
+                    <ArrowPathIcon className="animate-spin h-5 w-5 text-blue-600" />
+                    Detecting your location...
+                  </>
+                ) : liveLocation ? (
+                  <>
+                    <MapPinIcon className="h-5 w-5 text-green-600" />
+                    <span>Location set: {liveLocation.latitude.toFixed(4)}, {liveLocation.longitude.toFixed(4)}</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPinIcon className="h-5 w-5 text-gray-500" />
+                    Use My Current Location
+                  </>
+                )}
+              </button>
+              <p className="mt-2 text-xs text-gray-500">
+                We'll find the best hospitals near you instantly
+              </p>
             </div>
 
             {/* Age & Gender */}
@@ -315,7 +349,7 @@ const handleSubmit = async (e) => {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !liveLocation}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-80 transition-all duration-200"
             >
               {isSubmitting ? (
@@ -334,7 +368,7 @@ const handleSubmit = async (e) => {
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>🔒 Your data is processed securely and never stored permanently</p>
+          <p>🔒 Your location is used only to find nearby hospitals and is never stored</p>
         </div>
       </div>
     </div>

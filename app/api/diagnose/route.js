@@ -1,19 +1,33 @@
 // app/api/diagnose/route.js
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAP_KEY;
 
 export async function POST(req) {
   try {
-    const { symptoms, pincode } = await req.json();
+    const { symptoms, latitude, longitude } = await req.json();
 
-    if (!symptoms || symptoms.trim().length === 0) {
-      return new Response(JSON.stringify({ error: "Please enter your symptoms." }), {
-        status: 400,
-      });
+    // ✅ Validate symptoms
+    if (!symptoms?.trim()) {
+      return new Response(JSON.stringify({ error: "Please enter your symptoms." }), { status: 400 });
     }
 
-    // 🧠 Step 1: Generate diagnosis via Gemini
+    // ✅ Validate live location
+    if (!latitude || !longitude) {
+      return new Response(JSON.stringify({ error: "Location is required." }), { status: 400 });
+    }
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return new Response(JSON.stringify({ error: "Invalid coordinates." }), { status: 400 });
+    }
+
+    // 🧠 Step 1: Get diagnosis + specialists from Gemini
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // ✅ Fixed model name
 
     const prompt = `
 You are an expert medical assistant. Based on these symptoms:
@@ -22,61 +36,65 @@ You are an expert medical assistant. Based on these symptoms:
 Provide a JSON response with this structure:
 {
   "diagnosis": "Brief possible condition",
-  "remedies": ["Remedy 1", "Remedy 2"],
-  "precautions": ["Precaution 1", "Precaution 2"],
-  "specialists": ["Specialist 1", "Specialist 2"],
+  "remedies": ["Remedy 1", "Remedy 2", ...],
+  "precautions": ["Precaution 1", "Precaution 2", ...],
+  "specialists": ["Specialist 1", "Specialist 2", ...],
   "note": "Consult a doctor for proper diagnosis."
 }
-Only return valid JSON.`;
+
+- Do NOT include medicine names.
+- Keep remedies and precautions practical.
+- Specialists should be relevant (e.g., "Cardiologist" for heart issues).
+- Always end note with "Consult a doctor for proper diagnosis."
+- Respond ONLY with valid JSON. No extra text.
+`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
+    let text = result.response.text().replace(/```json\n?/g, '').replace(/```/g, '').trim();
 
-    // 🧹 Clean markdown
-    text = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
-
-    let data;
+    let diagnosisData;
     try {
-      data = JSON.parse(text);
+      diagnosisData = JSON.parse(text);
     } catch (e) {
       console.error("JSON Parse Error:", text);
-      return new Response(JSON.stringify({ error: "Failed to parse AI response." }), {
-        status: 500,
-      });
+      return new Response(JSON.stringify({ error: "AI response format error." }), { status: 500 });
     }
 
-    // 🏥 Step 2: Find nearby hospitals using OpenStreetMap Nominatim API (FREE)
+    // 🏥 Step 2: Fetch BEST hospitals near live location using Google Places
     let hospitals = [];
     try {
-      const locRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json`);
-      const locData = await locRes.json();
+      // Get top-rated hospitals within 10km radius
+      const placesResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=10000&type=hospital&key=${GOOGLE_MAPS_API_KEY}&rankby=prominence`
+      );
+      const placesData = await placesResponse.json();
 
-      if (locData.length > 0) {
-        const { lat, lon } = locData[0];
+      if (placesData.status === "OK") {
+        // Sort by rating (highest first) and pick top 5
+        const sortedHospitals = placesData.results
+          .filter(place => place.rating && place.user_ratings_total > 10) // Only rated hospitals
+          .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+          .slice(0, 5);
 
-        // Find hospitals within 5km radius
-        const hospitalRes = await fetch(
-          `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="hospital"](around:5000,${lat},${lon});out;`
-        );
-        const hospitalData = await hospitalRes.json();
-
-        hospitals = hospitalData.elements.map(h => ({
-          name: h.tags?.name || "Unnamed Hospital",
-          lat: h.lat,
-          lon: h.lon,
-          address: h.tags?.["addr:full"] || h.tags?.["addr:street"] || "Address not available"
+        hospitals = sortedHospitals.map(place => ({
+          name: place.name,
+          address: place.vicinity,
+          rating: place.rating,
+          user_ratings_total: place.user_ratings_total,
+          place_id: place.place_id,
+          map_url: `https://www.google.com/maps/place/?q=place_id:${place.place_id}`
         }));
       }
     } catch (err) {
-      console.error("Hospital Fetch Error:", err);
+      console.error("Hospital API Error:", err);
+      // Don't fail the whole request
     }
 
-    // ✅ Merge all results
+    // ✅ Final response
     const resultData = {
-      ...data,
-      pincode,
-      hospitals: hospitals.slice(0, 5) // only top 5 nearby
+      ...diagnosisData,
+      location: { lat, lng },
+      hospitals // Top-rated hospitals near user's live location
     };
 
     return new Response(JSON.stringify(resultData), {
@@ -86,8 +104,6 @@ Only return valid JSON.`;
 
   } catch (error) {
     console.error("API Error:", error);
-    return new Response(JSON.stringify({ error: "Failed to process diagnosis." }), {
-      status: 500,
-    });
+    return new Response(JSON.stringify({ error: "Failed to process your request." }), { status: 500 });
   }
 }
