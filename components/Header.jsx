@@ -31,7 +31,7 @@ const Header = () => {
             {[
               { name: "Home", href: "/" },
               { name: "About", href: "/about" },
-              { name: "Diagnoses", href: "/diagnoses" },
+              { name: "Diagnoses", href: "/diagnose" },
               { name: "Contact", href: "/contact" },
             ].map((item) => (
               <Link
