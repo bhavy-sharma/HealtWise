@@ -10,7 +10,7 @@ export default function HomePage() {
       <WowHeroSection />
       <WhatWeDo />
       <WhoWeAre />
-      <Footer />
+      {/* <Footer /> */}
     </main>
   );
 }
