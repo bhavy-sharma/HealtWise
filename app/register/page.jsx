@@ -96,7 +96,7 @@ const Register = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="block w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                    className="text-black block w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -121,7 +121,7 @@ const Register = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="block w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                    className="text-black block w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
                     placeholder="Enter your email"
                   />
                 </div>

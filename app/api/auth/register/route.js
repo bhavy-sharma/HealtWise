@@ -1,53 +1,37 @@
-import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import User from '@/models/User';
-import { generateToken } from '@/lib/jwt';
+import { NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import User from "@/models/User";
+import { generateToken } from "@/lib/jwt";
 
 export async function POST(request) {
   try {
     await dbConnect();
-    
+
     const { name, email, password } = await request.json();
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return NextResponse.json(
-        { message: 'User already exists' },
-        { status: 400 }
-      );
+    if (!name || !email || !password) {
+      return NextResponse.json({ message: "All fields are required." }, { status: 400 });
     }
 
-    // Create user
-    const user = await User.create({
-      name,
-      email,
-      password,
-    });
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return NextResponse.json({ message: "Email already exists." }, { status: 400 });
+    }
 
-    // Generate token
+    const user = await User.create({ name, email, password });
+
     const token = generateToken(user._id);
-
-    // Return user data without password
-    const userResponse = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
-    };
 
     return NextResponse.json(
       {
+        message: "User registered successfully.",
         token,
-        user: userResponse,
+        user: { _id: user._id, name: user.name, email: user.email },
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Registration error:', error);
-    return NextResponse.json(
-      { message: 'Server error' },
-      { status: 500 }
-    );
+    console.error("Register error:", error);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
