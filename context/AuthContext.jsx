@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         setUser(data.user);
-        router.push('/dashboard');
+        router.push('/');
         return { success: true };
       } else {
         return { success: false, error: data.message };
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         setUser(data.user);
-        router.push('/dashboard');
+        router.push('/');
         return { success: true };
       } else {
         return { success: false, error: data.message };
