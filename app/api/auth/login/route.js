@@ -6,23 +6,56 @@ import { generateToken } from '@/lib/jwt';
 export async function POST(request) {
   try {
     await dbConnect();
-    
+
     const { email, password } = await request.json();
 
-    // Check if user exists and include password
-    const user = await User.findOne({ email }).select('+password');
-    
-    if (!user || !(await user.matchPassword(password))) {
+    // ===== 1️⃣ Input Validation =====
+    if (!email) {
       return NextResponse.json(
-        { message: 'Invalid email or password' },
+        { message: 'Email is required.' },
+        { status: 400 }
+      );
+    }
+
+    // Simple email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { message: 'Please enter a valid email address.' },
+        { status: 400 }
+      );
+    }
+
+    if (!password) {
+      return NextResponse.json(
+        { message: 'Password is required.' },
+        { status: 400 }
+      );
+    }
+
+    // ===== 2️⃣ Find user and include password =====
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      return NextResponse.json(
+        { message: 'No account found with this email.' },
+        { status: 404 }
+      );
+    }
+
+    // ===== 3️⃣ Verify password =====
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return NextResponse.json(
+        { message: 'Incorrect password. Please try again.' },
         { status: 401 }
       );
     }
 
-    // Generate token
+    // ===== 4️⃣ Generate JWT Token =====
     const token = generateToken(user._id);
 
-    // Return user data without password
+    // ===== 5️⃣ Return response without password =====
     const userResponse = {
       _id: user._id,
       name: user.name,
@@ -30,14 +63,19 @@ export async function POST(request) {
       createdAt: user.createdAt,
     };
 
-    return NextResponse.json({
-      token,
-      user: userResponse,
-    });
+    return NextResponse.json(
+      {
+        message: 'Login successful.',
+        token,
+        user: userResponse,
+      },
+      { status: 200 }
+    );
+
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { message: 'Server error' },
+      { message: 'Something went wrong. Please try again later.' },
       { status: 500 }
     );
   }
