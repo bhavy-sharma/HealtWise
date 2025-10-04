@@ -1,55 +1,98 @@
+// components/Footer.js
 import Link from "next/link";
 import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 
 export default function Footer() {
-    return (
-    <footer className="bg-gradient-to-r from-blue-50 to-blue-100 text-gray-700 pt-10">
-    <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        <div>
-        <h1 className="text-2xl font-bold text-blue-600">Healthwise</h1>
-        <p className="mt-3 text-sm text-gray-600 leading-relaxed">
-            Empowering health with AI-powered insights & personalized care.  
-            Get the right guidance for your wellness journey.
-        </p>
+  return (
+    <footer className="bg-white border-t border-gray-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          
+          {/* Brand & Description */}
+          <div className="space-y-4">
+            <Link href="/" className="inline-flex items-center space-x-2 group">
+              <div className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center">
+                <span className="text-white font-semibold text-sm">H</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900">Healthwise</span>
+            </Link>
+            <p className="text-gray-600 leading-relaxed max-w-xs">
+              Empowering your wellness journey with AI-driven insights and compassionate care.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 mb-4">Quick Links</h2>
+            <ul className="space-y-2.5">
+              {[
+                { name: "Home", href: "/" },
+                { name: "About Us", href: "/about" },
+                { name: "AI Diagnosis", href: "/diagnoses" },
+                { name: "Contact Support", href: "/contact" },
+              ].map((link) => (
+                <li key={link.name}>
+                  <Link
+                    href={link.href}
+                    className="inline-block text-gray-600 hover:text-gray-900 transition-colors duration-200 relative group"
+                  >
+                    {link.name}
+                    <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-200 group-hover:w-6"></span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact & Social */}
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 mb-4">Contact Us</h2>
+            <div className="space-y-2.5 text-gray-600">
+              <p className="flex items-start">
+                <span className="mr-2 mt-0.5">📍</span>
+                <span>New Delhi, India</span>
+              </p>
+              <p className="flex items-start">
+                <span className="mr-2 mt-0.5">✉️</span>
+                <a href="mailto:support@healthwise.com" className="hover:text-gray-900 transition-colors">
+                  support@healthwise.com
+                </a>
+              </p>
+              <p className="flex items-start">
+                <span className="mr-2 mt-0.5">📞</span>
+                <a href="tel:+919876543210" className="hover:text-gray-900 transition-colors">
+                  +91 98765 43210
+                </a>
+              </p>
+            </div>
+
+            <div className="flex space-x-3 mt-5">
+              {[
+                { Icon: FaFacebookF, href: "#", hover: "hover:bg-blue-600" },
+                { Icon: FaTwitter, href: "#", hover: "hover:bg-sky-500" },
+                { Icon: FaInstagram, href: "#", hover: "hover:bg-pink-600" },
+                { Icon: FaLinkedinIn, href: "#", hover: "hover:bg-blue-700" },
+              ].map(({ Icon, href, hover }, i) => (
+                <a
+                  key={i}
+                  href={href}
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center bg-gray-100 text-gray-600 ${hover} hover:text-white transition-all duration-200`}
+                  aria-label={`Follow on ${Icon.name}`}
+                >
+                  <Icon className="text-sm" />
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div>
-        <h2 className="text-lg font-semibold mb-3 text-gray-800">Quick Links</h2>
-        <ul className="space-y-2">
-            <li><Link href="/" className="hover:text-blue-600 transition">Home</Link></li>
-            <li><Link href="/about" className="hover:text-blue-600 transition">About</Link></li>
-            <li><Link href="/diagnoses" className="hover:text-blue-600 transition">Diagnoses</Link></li>
-            <li><Link href="/contact" className="hover:text-blue-600 transition">Contact</Link></li>
-        </ul>
+        {/* Bottom Bar */}
+        <div className="mt-10 pt-6 border-t border-gray-100 text-center">
+          <p className="text-sm text-gray-500">
+            © {new Date().getFullYear()} Healthwise. All rights reserved.
+          </p>
         </div>
-
-        <div>
-        <h2 className="text-lg font-semibold mb-3 text-gray-800">Contact Us</h2>
-        <p className="text-sm text-gray-600">📍 New Delhi, India</p>
-        <p className="text-sm text-gray-600">📧 support@healthwise.com</p>
-        <p className="text-sm text-gray-600">📞 +91 98765 43210</p>
-
-        <div className="flex space-x-4 mt-4">
-            <a href="#" className="p-2 rounded-full bg-white shadow hover:bg-blue-600 hover:text-white transition">
-            <FaFacebookF />
-            </a>
-            <a href="#" className="p-2 rounded-full bg-white shadow hover:bg-sky-500 hover:text-white transition">
-            <FaTwitter />
-            </a>
-            <a href="#" className="p-2 rounded-full bg-white shadow hover:bg-pink-600 hover:text-white transition">
-            <FaInstagram />
-            </a>
-            <a href="#" className="p-2 rounded-full bg-white shadow hover:bg-blue-700 hover:text-white transition">
-            <FaLinkedinIn />
-            </a>
-        </div>
-        </div>
-    </div>
-
-    <div className="mt-10 text-center text-sm text-gray-500 bg-white/40 py-4">
-        © {new Date().getFullYear()} Healthwise. All rights reserved.
-    </div>
+      </div>
     </footer>
-);
+  );
 }

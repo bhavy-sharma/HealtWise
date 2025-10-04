@@ -219,7 +219,7 @@ const Register = () => {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-gray-600 text-sm">
-            © 2024 Healthwise. Your partner in health wellness.
+            © 2025 Healthwise. Your partner in health wellness.
           </p>
         </div>
       </div>
