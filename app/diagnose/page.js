@@ -63,51 +63,51 @@ export default function DiagnosePage() {
     return null;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault(); // 👈 Prevent page reload
+  // ... (same imports and state)
 
-    // Validate main form
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const validationError = validateForm();
+  if (validationError) {
+    setError(validationError);
+    return;
+  }
+
+  const symptoms = formData.issue.trim();
+  if (!symptoms) {
+    setError("Please describe your symptoms.");
+    return;
+  }
+
+  setIsSubmitting(true);
+  setError('');
+
+  try {
+    const res = await fetch('/api/diagnose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // 👇 Send symptoms + pincode
+      body: JSON.stringify({ 
+        symptoms, 
+        pincode: formData.pincode 
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      sessionStorage.setItem('diagnosisResult', JSON.stringify(data));
+      
+      router.push('/results');
+    } else {
+      setError(data.error || "Failed to get diagnosis.");
     }
-
-    // Use formData.issue as symptoms
-    const symptoms = formData.issue.trim();
-    if (!symptoms) {
-      setError("Please describe your symptoms.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError('');
-    setDiagnosisResult('');
-
-    try {
-      const res = await fetch('/api/diagnose', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ symptoms }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setDiagnosisResult(data.diagnosis);
-        // Optional: you can redirect or keep it on same page
-      } else {
-        setError(data.error || "Failed to get diagnosis. Please try again.");
-      }
-    } catch (err) {
-      console.error("Network error:", err);
-      setError("Network error. Please check your internet connection.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  } catch (err) {
+    setError("Network error. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4 sm:px-6 relative overflow-hidden">
