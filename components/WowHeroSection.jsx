@@ -13,45 +13,7 @@ const WowHeroSection = () => {
     router.push('/Issue');
   };
 
-  const features = [
-    {
-      id: 1,
-      icon: '🔍',
-      title: 'Symptom Analysis',
-      description: 'AI-powered symptom checker for accurate health insights',
-      color: 'from-blue-500 to-cyan-500',
-      bgColor: 'bg-blue-50 border-blue-200',
-      delay: 0.1
-    },
-    {
-      id: 2,
-      title: 'Personalized Remedies',
-      icon: '💊',
-      description: 'Custom precautions and treatment recommendations',
-      color: 'from-green-500 to-emerald-500',
-      bgColor: 'bg-green-50 border-green-200',
-      delay: 0.2
-    },
-    {
-      id: 3,
-      icon: '👨‍⚕️',
-      title: 'Specialist Doctors',
-      description: 'Find the right medical specialists for your condition',
-      color: 'from-purple-500 to-pink-500',
-      bgColor: 'bg-purple-50 border-purple-200',
-      delay: 0.3
-    },
-    {
-      id: 4,
-      icon: '🏥',
-      title: 'Nearby Hospitals',
-      description: 'Locate best hospitals with ratings and distance',
-      color: 'from-orange-500 to-red-500',
-      bgColor: 'bg-orange-50 border-orange-200',
-      delay: 0.4
-    }
-  ];
-
+  // Text Animation Variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -73,7 +35,6 @@ const WowHeroSection = () => {
     }
   };
 
-  // Text animation variants for the expanding effect
   const textContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -115,27 +76,27 @@ const WowHeroSection = () => {
 
   return (
     <div className="h-screen bg-white flex flex-col lg:flex-row overflow-hidden">
-      {/* Left Side - Content with Text Expand Animation */}
-      <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-white via-gray-50/50 to-blue-50/30 relative order-2 lg:order-1">
+      {/* Left Side - Content */}
+      <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-white relative order-2 lg:order-1">
         
-        {/* Subtle Background Animation */}
-        <div className="absolute inset-0">
+        {/* Subtle Background Orbs */}
+        <div className="absolute inset-0 pointer-events-none">
           <motion.div
             animate={{
               scale: [1, 1.1, 1],
-              opacity: [0.1, 0.2, 0.1],
+              opacity: [0.03, 0.06, 0.03],
             }}
             transition={{
               duration: 4,
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="absolute top-1/4 right-1/4 w-32 h-32 bg-blue-100 rounded-full blur-2xl"
+            className="absolute top-1/4 right-1/4 w-32 h-32 bg-gray-200 rounded-full blur-2xl"
           />
           <motion.div
             animate={{
               scale: [1.1, 1, 1.1],
-              opacity: [0.05, 0.1, 0.05],
+              opacity: [0.02, 0.04, 0.02],
             }}
             transition={{
               duration: 5,
@@ -143,7 +104,7 @@ const WowHeroSection = () => {
               ease: "easeInOut",
               delay: 1
             }}
-            className="absolute bottom-1/3 left-1/4 w-24 h-24 bg-green-100 rounded-full blur-2xl"
+            className="absolute bottom-1/3 left-1/4 w-24 h-24 bg-gray-100 rounded-full blur-2xl"
           />
         </div>
 
@@ -153,7 +114,7 @@ const WowHeroSection = () => {
           initial="hidden"
           animate="visible"
         >
-          {/* Animated Heading with Expand Effect */}
+          {/* Animated Heading */}
           <motion.div
             variants={textContainerVariants}
             initial="hidden"
@@ -176,20 +137,16 @@ const WowHeroSection = () => {
                   key={index}
                   variants={wordVariants}
                   className="inline-block mr-2"
-                  style={{ 
-                    display: 'inline-block',
-                    overflow: 'hidden'
-                  }}
                 >
                   {word}
                 </motion.span>
               ))}
             </motion.h1>
 
-            {/* Animated Underline */}
+            {/* Clean Underline */}
             <motion.div
               variants={lineVariants}
-              className="h-1 bg-gradient-to-r from-blue-600 to-green-600 rounded-full"
+              className="h-1 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full"
             />
           </motion.div>
 
@@ -202,16 +159,16 @@ const WowHeroSection = () => {
             connect with expert doctors, and discover the best healthcare facilities near you.
           </motion.p>
 
-          {/* CTA Buttons */}
+          {/* CTA Button */}
           <motion.div
             variants={itemVariants}
             className="flex flex-col sm:flex-row gap-4 mb-8"
           >
             <motion.button
               onClick={handleGetStarted}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-green-600 text-white text-lg font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 justify-center"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-lg font-semibold rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 justify-center"
             >
               <span>Start Health Assessment</span>
               <motion.span
@@ -221,13 +178,64 @@ const WowHeroSection = () => {
               >
                 →
               </motion.span>
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity duration-300"></div>
             </motion.button>
           </motion.div>
         </motion.div>
       </div>
 
-      <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-gradient-to-br from-blue-50/80 via-cyan-50/40 to-emerald-50/60 relative overflow-hidden order-1 lg:order-2"></div>
+      {/* Right Side - Beautiful Image with Hover Effect */}
+      <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-gradient-to-br from-white via-gray-50 to-gray-100/50 relative overflow-hidden order-1 lg:order-2">
+
+        {/* Dummy Image (Replace Later) */}
+        <motion.div
+          whileHover={{
+            scale: 1.05,
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)",
+            rotate: 1
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 20
+          }}
+          className="relative w-full max-w-md aspect-square rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-white"
+        >
+          <img
+            src="https://picsum.photos/id/1003/800/800" // 👈 Dummy Image (Medical Theme)
+            alt="AI Doctor & Health Tech"
+            className="w-full h-full object-cover"
+          />
+
+          {/* Overlay Glow on Hover */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileHover={{ opacity: 0.2 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-green-500/20"
+          ></motion.div>
+
+          {/* Floating Icon (Optional) */}
+          <motion.div
+            animate={{
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, 0]
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-4 right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200"
+          >
+            <span className="text-blue-600 text-xl">🧠</span>
+          </motion.div>
+
+          {/* Bottom Label */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-3 text-center">
+            <p className="text-xs font-medium text-gray-700">AI-Powered Health Assistant</p>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };
