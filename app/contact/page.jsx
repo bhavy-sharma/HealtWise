@@ -11,11 +11,11 @@ export default function Contact() {
       <ContactForm />
       
       {/* Optional: Show user info if logged in */}
-      {user && (
+      {/* {user && (
         <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <p className="text-sm">Logged in as: {user.name}</p>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

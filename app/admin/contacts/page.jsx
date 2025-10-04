@@ -29,57 +29,88 @@ export default function AdminContacts() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Please login to view this page</div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-xl font-medium text-gray-800">Please login to view this page</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Contact Messages</h1>
-        
+    <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Contact Messages</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            View and manage messages from your website visitors.
+          </p>
+        </div>
+
         {loading ? (
-          <div className="text-center">Loading...</div>
+          <div className="flex justify-center items-center h-64">
+            <div className="text-gray-700 font-medium">Loading messages...</div>
+          </div>
+        ) : contacts.length === 0 ? (
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+            <p className="text-gray-500">No contact messages yet.</p>
+          </div>
         ) : (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {contacts.map((contact) => (
-                  <tr key={contact._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{contact.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{contact.email}</td>
-                    <td className="px-6 py-4">
-                      <div className="max-w-xs truncate">{contact.message}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {new Date(contact.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        contact.status === 'new' 
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : contact.status === 'read'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {contact.status}
-                      </span>
-                    </td>
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Message
+                    </th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Status
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {contacts.map((contact) => (
+                    <tr key={contact._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-medium text-gray-900">{contact.name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-gray-700">{contact.email}</div>
+                      </td>
+                      <td className="px-6 py-4 max-w-xs">
+                        <div className="text-gray-700 line-clamp-2">{contact.message}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                        {new Date(contact.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          contact.status === 'new'
+                            ? 'bg-amber-100 text-amber-800'
+                            : contact.status === 'read'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
