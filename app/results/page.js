@@ -119,18 +119,37 @@ export default function ResultsPage() {
           </div>
 
           {/* Hospitals (Placeholder - You can integrate Google Maps API later) */}
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center">
-              <MapPinIcon className="h-5 w-5 text-purple-500 mr-2" />
-              Best Hospitals Near {data.pincode}
-            </h2>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-600 italic">
-                🔍 Hospital data integration coming soon!  
-                For now, search "Best hospitals near {data.pincode}" on Google Maps.
-              </p>
-            </div>
-          </div>
+          {/* Hospitals */}
+<div className="p-6 border-b border-gray-200">
+  <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center">
+    <MapPinIcon className="h-5 w-5 text-purple-500 mr-2" />
+    Nearby Hospitals ({data.pincode})
+  </h2>
+
+  {data.hospitals && data.hospitals.length > 0 ? (
+    <ul className="space-y-3">
+      {data.hospitals.map((h, i) => (
+        <li key={i} className="p-3 bg-purple-50 rounded-lg">
+          <p className="font-semibold text-gray-800">{h.name}</p>
+          <p className="text-gray-600 text-sm">{h.address}</p>
+          <a 
+            href={`https://www.google.com/maps?q=${h.lat},${h.lon}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 text-sm hover:underline"
+          >
+            📍 View on Map
+          </a>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p className="text-gray-600 italic">
+      No hospital data found for this area.
+    </p>
+  )}
+</div>
+
 
           {/* Final Note */}
           <div className="p-6 bg-amber-50 border-t border-amber-200">

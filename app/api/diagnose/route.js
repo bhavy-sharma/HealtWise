@@ -1,10 +1,9 @@
 // app/api/diagnose/route.js
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req) {
   try {
-    const { symptoms, pincode } = await req.json(); // 👈 pincode bhi lenge
+    const { symptoms, pincode } = await req.json();
 
     if (!symptoms || symptoms.trim().length === 0) {
       return new Response(JSON.stringify({ error: "Please enter your symptoms." }), {
@@ -12,36 +11,29 @@ export async function POST(req) {
       });
     }
 
+    // 🧠 Step 1: Generate diagnosis via Gemini
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-    
-    // ✅ Use FREE & WORKING model
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
 You are an expert medical assistant. Based on these symptoms:
 "${symptoms}"
 
-Provide a JSON response with the following structure:
+Provide a JSON response with this structure:
 {
   "diagnosis": "Brief possible condition",
-  "remedies": ["Remedy 1", "Remedy 2", ...],
-  "precautions": ["Precaution 1", "Precaution 2", ...],
-  "specialists": ["Specialist 1", "Specialist 2", ...],
+  "remedies": ["Remedy 1", "Remedy 2"],
+  "precautions": ["Precaution 1", "Precaution 2"],
+  "specialists": ["Specialist 1", "Specialist 2"],
   "note": "Consult a doctor for proper diagnosis."
 }
-
-- Do NOT include medicine names.
-- Keep remedies and precautions practical and home-based.
-- Specialists should be relevant (e.g., "Cardiologist", "Dermatologist").
-- Always end note with "Consult a doctor for proper diagnosis."
-- Respond ONLY with valid JSON. No extra text.
-`;
+Only return valid JSON.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text();
 
-    // Clean response (remove markdown if any)
+    // 🧹 Clean markdown
     text = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
 
     let data;
@@ -49,22 +41,52 @@ Provide a JSON response with the following structure:
       data = JSON.parse(text);
     } catch (e) {
       console.error("JSON Parse Error:", text);
-      return new Response(JSON.stringify({ error: "Failed to parse response. Please try again." }), {
+      return new Response(JSON.stringify({ error: "Failed to parse AI response." }), {
         status: 500,
       });
     }
 
-    // Add pincode for hospital lookup later
-    data.pincode = pincode;
+    // 🏥 Step 2: Find nearby hospitals using OpenStreetMap Nominatim API (FREE)
+    let hospitals = [];
+    try {
+      const locRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json`);
+      const locData = await locRes.json();
 
-    return new Response(JSON.stringify(data), {
+      if (locData.length > 0) {
+        const { lat, lon } = locData[0];
+
+        // Find hospitals within 5km radius
+        const hospitalRes = await fetch(
+          `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="hospital"](around:5000,${lat},${lon});out;`
+        );
+        const hospitalData = await hospitalRes.json();
+
+        hospitals = hospitalData.elements.map(h => ({
+          name: h.tags?.name || "Unnamed Hospital",
+          lat: h.lat,
+          lon: h.lon,
+          address: h.tags?.["addr:full"] || h.tags?.["addr:street"] || "Address not available"
+        }));
+      }
+    } catch (err) {
+      console.error("Hospital Fetch Error:", err);
+    }
+
+    // ✅ Merge all results
+    const resultData = {
+      ...data,
+      pincode,
+      hospitals: hospitals.slice(0, 5) // only top 5 nearby
+    };
+
+    return new Response(JSON.stringify(resultData), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
 
   } catch (error) {
     console.error("API Error:", error);
-    return new Response(JSON.stringify({ error: "Failed to process diagnosis" }), {
+    return new Response(JSON.stringify({ error: "Failed to process diagnosis." }), {
       status: 500,
     });
   }
