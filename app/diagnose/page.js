@@ -5,14 +5,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   HeartIcon, 
-  ShieldCheckIcon, 
-  UserIcon,
   MapPinIcon,
   ArrowPathIcon,
   BeakerIcon,
   ExclamationTriangleIcon,
   ClipboardDocumentListIcon,
-  AcademicCapIcon
+  AcademicCapIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 
 export default function DiagnosePage() {
@@ -26,8 +25,8 @@ export default function DiagnosePage() {
     previousIssues: '',
     allergies: ''
   });
-  
-  const [liveLocation, setLiveLocation] = useState(null); // ✅ Store GPS coordinates
+
+  const [liveLocation, setLiveLocation] = useState(null);
   const [isUsingLocation, setIsUsingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -39,10 +38,10 @@ export default function DiagnosePage() {
     if (error) setError('');
   };
 
-  // ✅ Get live location
+  // ✅ Get user location safely (works on HTTPS only — Vercel supports HTTPS)
   const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser.");
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setError("Geolocation is not supported in this environment.");
       return;
     }
 
@@ -51,88 +50,83 @@ export default function DiagnosePage() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        setLiveLocation({ latitude, longitude });
+        setLiveLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
         setIsUsingLocation(false);
       },
       (err) => {
         console.error("Geolocation error:", err);
-        setError("Unable to access your location. Please allow location permission.");
+        if (err.code === 1) {
+          setError("Permission denied. Please allow location access.");
+        } else if (err.code === 2) {
+          setError("Position unavailable. Try again later.");
+        } else {
+          setError("Unable to access your location. Please try again.");
+        }
         setIsUsingLocation(false);
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 0
+        maximumAge: 0,
       }
     );
   };
 
   const validateForm = () => {
     const { name, age, gender, issue, days, issueLevel } = formData;
-    
     if (!name || !age || !gender || !issue || !days || !issueLevel) {
       return "All required fields must be filled.";
     }
-    
     const ageNum = Number(age);
     if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
-      return "Age must be between 1 and 120";
+      return "Age must be between 1 and 120.";
     }
-    
     const daysNum = Number(days);
     if (isNaN(daysNum) || daysNum < 1) {
-      return "Days must be at least 1";
+      return "Days must be at least 1.";
     }
-    
     return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+    if (validationError) return setError(validationError);
 
-    const symptoms = formData.issue.trim();
-    if (!symptoms) {
-      setError("Please describe your symptoms.");
-      return;
-    }
-
-    // ✅ Ensure location is provided
-    if (!liveLocation) {
-      setError("Please use 'Use My Location' to find nearby hospitals.");
-      return;
-    }
+    if (!liveLocation) return setError("Please click 'Use My Location' to continue.");
 
     setIsSubmitting(true);
     setError('');
 
     try {
-      const res = await fetch('/api/diagnose', {
+      // ✅ Absolute URL ensures it works both in localhost and Vercel production
+      const apiUrl = `${window.location.origin}/api/diagnose`;
+
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // 👇 Send symptoms + LIVE LOCATION (not pincode)
-        body: JSON.stringify({ 
-          symptoms, 
+        body: JSON.stringify({
+          symptoms: formData.issue.trim(),
           latitude: liveLocation.latitude,
-          longitude: liveLocation.longitude
+          longitude: liveLocation.longitude,
         }),
       });
 
       const data = await res.json();
 
-      if (res.ok) {
-        sessionStorage.setItem('diagnosisResult', JSON.stringify(data));
-        router.push('/results');
-      } else {
-        setError(data.error || "Failed to get diagnosis.");
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to get diagnosis.");
       }
+
+      sessionStorage.setItem('diagnosisResult', JSON.stringify(data));
+      router.push('/results');
     } catch (err) {
-      setError("Network error. Please try again.");
+      console.error("Submit error:", err);
+      setError(err.message || "Network error. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -149,7 +143,7 @@ export default function DiagnosePage() {
             AI Health Diagnosis
           </h1>
           <p className="text-gray-600 max-w-md mx-auto">
-            We'll find the best hospitals near your current location
+            We'll find the best hospitals near your location
           </p>
         </div>
 
@@ -164,7 +158,7 @@ export default function DiagnosePage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name */}
+            {/* Full Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                 Full Name *
@@ -184,7 +178,7 @@ export default function DiagnosePage() {
               </div>
             </div>
 
-            {/* ✅ LIVE LOCATION BUTTON (replaces PINCODE) */}
+            {/* Location Button */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Your Location *
@@ -203,7 +197,7 @@ export default function DiagnosePage() {
                 ) : liveLocation ? (
                   <>
                     <MapPinIcon className="h-5 w-5 text-green-600" />
-                    <span>Location set: {liveLocation.latitude.toFixed(4)}, {liveLocation.longitude.toFixed(4)}</span>
+                    <span>Set: {liveLocation.latitude.toFixed(4)}, {liveLocation.longitude.toFixed(4)}</span>
                   </>
                 ) : (
                   <>
@@ -213,7 +207,7 @@ export default function DiagnosePage() {
                 )}
               </button>
               <p className="mt-2 text-xs text-gray-500">
-                We'll find the best hospitals near you instantly
+                Used only to find nearby hospitals (not stored).
               </p>
             </div>
 
@@ -257,7 +251,7 @@ export default function DiagnosePage() {
               </div>
             </div>
 
-            {/* Issue (Symptoms) */}
+            {/* Issue */}
             <div>
               <label htmlFor="issue" className="block text-sm font-medium text-gray-700 mb-2">
                 Health Issue / Symptoms *
@@ -274,7 +268,7 @@ export default function DiagnosePage() {
               />
             </div>
 
-            {/* Days */}
+            {/* Duration */}
             <div>
               <label htmlFor="days" className="block text-sm font-medium text-gray-700 mb-2">
                 Duration (Days) *
@@ -292,7 +286,7 @@ export default function DiagnosePage() {
               />
             </div>
 
-            {/* Issue Level */}
+            {/* Severity */}
             <div>
               <label htmlFor="issueLevel" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                 <ExclamationTriangleIcon className="h-4 w-4 mr-1 text-amber-500" />
@@ -307,7 +301,7 @@ export default function DiagnosePage() {
                 required
               >
                 <option value="">Select severity</option>
-                <option value="mild">Mild (Beginner)</option>
+                <option value="mild">Mild</option>
                 <option value="moderate">Moderate</option>
                 <option value="severe">Severe</option>
               </select>
@@ -326,7 +320,7 @@ export default function DiagnosePage() {
                 onChange={handleChange}
                 rows={2}
                 className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                placeholder="e.g., Diabetes, BP, Asthma, or current medicines..."
+                placeholder="e.g., Diabetes, BP, Asthma..."
               />
             </div>
 
@@ -368,7 +362,7 @@ export default function DiagnosePage() {
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>🔒 Your location is used only to find nearby hospitals and is never stored</p>
+          <p>🔒 Your location is used only to find nearby hospitals and is never stored.</p>
         </div>
       </div>
     </div>
