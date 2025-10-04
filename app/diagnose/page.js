@@ -97,7 +97,7 @@ export default function DiagnosePage() {
     const validationError = validateForm();
     if (validationError) return setError(validationError);
 
-    if (!liveLocation) return setError("Please click 'Use My Location' to continue.");
+    if (!liveLocation) return setError("Please click Use My Location to continue.");
 
     setIsSubmitting(true);
     setError('');
@@ -143,7 +143,7 @@ export default function DiagnosePage() {
             AI Health Diagnosis
           </h1>
           <p className="text-gray-600 max-w-md mx-auto">
-            We'll find the best hospitals near your location
+            We will find the best hospitals near your location
           </p>
         </div>
 
