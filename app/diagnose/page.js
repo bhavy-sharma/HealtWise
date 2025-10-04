@@ -1,7 +1,7 @@
 // app/diagnose/page.js
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   HeartIcon, 
@@ -9,8 +9,13 @@ import {
   UserIcon,
   MapPinIcon,
   ArrowPathIcon,
-  BeakerIcon
+  BeakerIcon,
+  ExclamationTriangleIcon,
+  ClipboardDocumentListIcon,
+  AcademicCapIcon
 } from "@heroicons/react/24/outline";
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function DiagnosePage() {
   const [formData, setFormData] = useState({
@@ -18,12 +23,16 @@ export default function DiagnosePage() {
     pincode: '',
     age: '',
     gender: '',
-    issue: '',
-    days: ''
+    issue: '',        // ← This is your symptoms field
+    days: '',
+    issueLevel: '',
+    previousIssues: '',
+    allergies: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [diagnosisResult, setDiagnosisResult] = useState(''); // Optional: to show result
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -33,64 +42,78 @@ export default function DiagnosePage() {
   };
 
   const validateForm = () => {
-    const { name, pincode, age, gender, issue, days } = formData;
+    const { name, pincode, age, gender, issue, days, issueLevel } = formData;
     
-    if (!name || !pincode || !age || !gender || !issue || !days) {
-      return "All fields are required";
+    if (!name || !pincode || !age || !gender || !issue || !days || !issueLevel) {
+      return "All required fields must be filled.";
     }
     
     if (!/^\d{6}$/.test(pincode)) {
       return "PINCODE must be 6 digits";
     }
     
-    if (age < 1 || age > 120) {
+    const ageNum = Number(age);
+    if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
       return "Age must be between 1 and 120";
     }
     
-    if (days < 1) {
+    const daysNum = Number(days);
+    if (isNaN(daysNum) || daysNum < 1) {
       return "Days must be at least 1";
     }
     
     return null;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const validationError = validateForm();
-    
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+  // ... (same imports and state)
 
-    setIsSubmitting(true);
-    setError('');
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const validationError = validateForm();
+  if (validationError) {
+    setError(validationError);
+    return;
+  }
 
-    try {
-      const response = await fetch('/api/diagnose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+  const symptoms = formData.issue.trim();
+  if (!symptoms) {
+    setError("Please describe your symptoms.");
+    return;
+  }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get diagnosis');
-      }
+  setIsSubmitting(true);
+  setError('');
 
-      const result = await response.json();
-      localStorage.setItem('diagnosisResult', JSON.stringify(result));
-      router.push('/results');
+  try {
+    const res = await fetch('/api/diagnose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // 👇 Send symptoms + pincode
+      body: JSON.stringify({ 
+        symptoms, 
+        pincode: formData.pincode 
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      sessionStorage.setItem('diagnosisResult', JSON.stringify(data));
       
-    } catch (err) {
-      console.error('Diagnosis error:', err);
-      setError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      router.push('/results');
+    } else {
+      setError(data.error || "Failed to get diagnosis.");
     }
-  };
+  } catch (err) {
+    setError("Network error. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
+    <div>
+      <Header />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4 sm:px-6 relative overflow-hidden">
       <div className="max-w-2xl mx-auto relative z-10">
         <div className="text-center mb-10">
@@ -101,7 +124,7 @@ export default function DiagnosePage() {
             AI Health Diagnosis
           </h1>
           <p className="text-gray-600 max-w-md mx-auto">
-            Get personalized health insights, hospital recommendations, and specialist advice
+            Help us understand your condition better for accurate insights
           </p>
         </div>
 
@@ -112,6 +135,13 @@ export default function DiagnosePage() {
                 <span className="mr-2">⚠️</span>
                 <span>{error}</span>
               </div>
+            </div>
+          )}
+
+          {diagnosisResult && (
+            <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-r-lg">
+              <h3 className="font-bold mb-2">AI Diagnosis:</h3>
+              <p>{diagnosisResult}</p>
             </div>
           )}
 
@@ -131,6 +161,7 @@ export default function DiagnosePage() {
                   onChange={handleChange}
                   className="w-full pl-12 pr-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., Priya Sharma"
+                  required
                 />
               </div>
             </div>
@@ -151,6 +182,7 @@ export default function DiagnosePage() {
                   className="w-full pl-12 pr-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="6-digit PINCODE"
                   maxLength={6}
+                  required
                 />
               </div>
             </div>
@@ -171,6 +203,7 @@ export default function DiagnosePage() {
                   max="120"
                   className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., 32"
+                  required
                 />
               </div>
 
@@ -183,7 +216,8 @@ export default function DiagnosePage() {
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
-                  className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none custom-select"
+                  className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                  required
                 >
                   <option value="">Select</option>
                   <option value="male">Male</option>
@@ -193,7 +227,7 @@ export default function DiagnosePage() {
               </div>
             </div>
 
-            {/* Issue */}
+            {/* Issue (Symptoms) */}
             <div>
               <label htmlFor="issue" className="block text-sm font-medium text-gray-700 mb-2">
                 Health Issue / Symptoms *
@@ -203,9 +237,10 @@ export default function DiagnosePage() {
                 name="issue"
                 value={formData.issue}
                 onChange={handleChange}
-                rows={4}
+                rows={3}
                 className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                placeholder="Describe your symptoms..."
+                placeholder="e.g., Fever, headache, fatigue..."
+                required
               />
             </div>
 
@@ -222,7 +257,63 @@ export default function DiagnosePage() {
                 onChange={handleChange}
                 min="1"
                 className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., 5"
+                placeholder="e.g., 3"
+                required
+              />
+            </div>
+
+            {/* Issue Level */}
+            <div>
+              <label htmlFor="issueLevel" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <ExclamationTriangleIcon className="h-4 w-4 mr-1 text-amber-500" />
+                Severity Level *
+              </label>
+              <select
+                id="issueLevel"
+                name="issueLevel"
+                value={formData.issueLevel}
+                onChange={handleChange}
+                className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                required
+              >
+                <option value="">Select severity</option>
+                <option value="mild">Mild (Beginner)</option>
+                <option value="moderate">Moderate</option>
+                <option value="severe">Severe</option>
+              </select>
+            </div>
+
+            {/* Previous Issues */}
+            <div>
+              <label htmlFor="previousIssues" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <ClipboardDocumentListIcon className="h-4 w-4 mr-1 text-blue-500" />
+                Previous Medical Conditions / Medications
+              </label>
+              <textarea
+                id="previousIssues"
+                name="previousIssues"
+                value={formData.previousIssues}
+                onChange={handleChange}
+                rows={2}
+                className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                placeholder="e.g., Diabetes, BP, Asthma, or current medicines..."
+              />
+            </div>
+
+            {/* Allergies */}
+            <div>
+              <label htmlFor="allergies" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <AcademicCapIcon className="h-4 w-4 mr-1 text-green-500" />
+                Allergies (if any)
+              </label>
+              <input
+                type="text"
+                id="allergies"
+                name="allergies"
+                value={formData.allergies}
+                onChange={handleChange}
+                className="w-full px-5 py-4 text-gray-800 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., Penicillin, Dust, Peanuts..."
               />
             </div>
 
@@ -234,7 +325,7 @@ export default function DiagnosePage() {
               {isSubmitting ? (
                 <>
                   <ArrowPathIcon className="animate-spin inline mr-2 h-5 w-5" />
-                  Analyzing...
+                  Analyzing Your Health...
                 </>
               ) : (
                 <>
@@ -247,9 +338,11 @@ export default function DiagnosePage() {
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>🔒 Your data is processed securely and never stored</p>
+          <p>🔒 Your data is processed securely and never stored permanently</p>
         </div>
       </div>
+    </div>
+    <Footer />
     </div>
   );
 }

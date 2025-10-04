@@ -2,125 +2,157 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { HeartIcon, MapPinIcon, ShieldCheckIcon, AcademicCapIcon } from "@heroicons/react/24/outline";
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function ResultsPage() {
-  const [result, setResult] = useState(null);
-  const router = useRouter();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const storedResult = localStorage.getItem('diagnosisResult');
-    if (!storedResult) {
-      router.push('/diagnose');
-      return;
+    const saved = sessionStorage.getItem('diagnosisResult');
+    if (saved) {
+      try {
+        setData(JSON.parse(saved));
+      } catch (e) {
+        setError("Invalid data. Please go back and try again.");
+      }
+    } else {
+      setError("No diagnosis data found. Please complete the form first.");
     }
-    setResult(JSON.parse(storedResult));
-  }, [router]);
+  }, []);
 
-  if (!result) {
+  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-6 bg-white rounded-xl shadow">
+          <div className="text-red-500 text-2xl mb-4">⚠️</div>
+          <p className="text-gray-700">{error}</p>
+          <button 
+            onClick={() => window.history.back()}
+            className="mt-4 text-blue-600 hover:underline"
+          >
+            Go Back
+          </button>
+        </div>
       </div>
     );
   }
 
-  const { user, diagnosis, hospitals, doctors } = result;
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6">
+    <div>
+      <Header />
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
-        <button
-          onClick={() => router.push('/diagnose')}
-          className="flex items-center text-blue-600 mb-8 hover:text-blue-800"
-        >
-          <ArrowLeftIcon className="h-5 w-5 mr-1" />
-          Back to form
-        </button>
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-blue-600 text-white mb-5 shadow-lg">
+            <ShieldCheckIcon className="h-8 w-8" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+            Your Health Report
+          </h1>
+          <p className="text-gray-600">Based on your symptoms and location</p>
+        </div>
 
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
-            <h1 className="text-2xl font-bold">Your Health Report</h1>
-            <p className="opacity-90">For {user.name}, {user.age} years old</p>
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+          {/* Diagnosis */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center">
+              <HeartIcon className="h-5 w-5 text-red-500 mr-2" />
+              Possible Diagnosis
+            </h2>
+            <p className="text-gray-700 bg-red-50 p-4 rounded-lg">{data.diagnosis}</p>
           </div>
 
-          <div className="p-6 md:p-8 space-y-8">
-            {/* Diagnosis Probabilities */}
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Possible Conditions</h2>
-              <div className="space-y-3">
-                {diagnosis.conditions.map((cond, i) => (
-                  <div key={i} className="border-l-4 border-blue-500 pl-4 py-1">
-                    <div className="flex justify-between mb-1">
-                      <span className="font-medium">{cond.name}</span>
-                      <span className="font-bold text-blue-600">{cond.probability}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
-                        style={{ width: `${cond.probability}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* Remedies */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center">
+              <AcademicCapIcon className="h-5 w-5 text-green-500 mr-2" />
+              Home Remedies
+            </h2>
+            <ul className="space-y-2">
+              {data.remedies?.map((remedy, i) => (
+                <li key={i} className="flex items-start">
+                  <span className="text-green-500 mr-2">•</span>
+                  <span className="text-gray-700">{remedy}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-            {/* Remedies */}
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Home Remedies</h2>
-              <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                {diagnosis.remedies.map((remedy, i) => (
-                  <li key={i}>{remedy}</li>
-                ))}
-              </ul>
-            </div>
+          {/* Precautions */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center">
+              <ShieldCheckIcon className="h-5 w-5 text-amber-500 mr-2" />
+              Precautions
+            </h2>
+            <ul className="space-y-2">
+              {data.precautions?.map((precaution, i) => (
+                <li key={i} className="flex items-start">
+                  <span className="text-amber-500 mr-2">•</span>
+                  <span className="text-gray-700">{precaution}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-            {/* Precautions */}
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Precautions</h2>
-              <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                {diagnosis.precautions.map((precaution, i) => (
-                  <li key={i}>{precaution}</li>
-                ))}
-              </ul>
+          {/* Specialists */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-3">
+              Recommended Specialists
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {data.specialists?.map((spec, i) => (
+                <span 
+                  key={i} 
+                  className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                >
+                  {spec}
+                </span>
+              ))}
             </div>
+          </div>
 
-            {/* Hospitals */}
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Nearby Hospitals</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {hospitals.map((hospital, i) => (
-                  <div key={i} className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-bold text-gray-900">{hospital.name}</h3>
-                    <p className="text-sm text-gray-600">{hospital.distance} • ⭐ {hospital.rating}</p>
-                  </div>
-                ))}
-              </div>
+          {/* Hospitals (Placeholder - You can integrate Google Maps API later) */}
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center">
+              <MapPinIcon className="h-5 w-5 text-purple-500 mr-2" />
+              Best Hospitals Near {data.pincode}
+            </h2>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-gray-600 italic">
+                🔍 Hospital data integration coming soon!  
+                For now, search "Best hospitals near {data.pincode}" on Google Maps.
+              </p>
             </div>
+          </div>
 
-            {/* Doctors */}
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Recommended Specialists</h2>
-              <div className="space-y-3">
-                {doctors.map((doctor, i) => (
-                  <div key={i} className="flex items-start border border-gray-200 rounded-lg p-4">
-                    <div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center mr-3">
-                      <span className="font-bold text-blue-800">D</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900">{doctor.name}</h3>
-                      <p className="text-sm text-gray-600">{doctor.specialty} • {doctor.experience}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* Final Note */}
+          <div className="p-6 bg-amber-50 border-t border-amber-200">
+            <p className="text-amber-800 font-medium">{data.note}</p>
           </div>
         </div>
+
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => window.history.back()}
+            className="px-6 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition"
+          >
+            ← Go Back
+          </button>
+        </div>
       </div>
+    </div>
+    <Footer />
     </div>
   );
 }
