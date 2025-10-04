@@ -3,8 +3,6 @@
 
 import { useEffect, useState } from 'react';
 import { HeartIcon, MapPinIcon, ShieldCheckIcon, AcademicCapIcon } from "@heroicons/react/24/outline";
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 export default function ResultsPage() {
   const [data, setData] = useState(null);
@@ -49,8 +47,6 @@ export default function ResultsPage() {
   }
 
   return (
-    <div>
-      <Header />
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
@@ -151,8 +147,6 @@ export default function ResultsPage() {
           </button>
         </div>
       </div>
-    </div>
-    <Footer />
     </div>
   );
 }
